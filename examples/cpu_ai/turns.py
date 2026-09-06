@@ -4,8 +4,9 @@ from __future__ import annotations
 
 import audioop
 
-from examples.cpu_ai.config import AiConfig
 from wildix_media import AudioFrame
+
+from .config import AiConfig
 
 
 class TurnDetector:

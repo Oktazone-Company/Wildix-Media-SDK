@@ -93,7 +93,7 @@ WILDIX_AI_ASR_MODEL=tiny.en
 WILDIX_AI_ASR_LANGUAGE=en
 WILDIX_AI_OLLAMA_URL=http://127.0.0.1:11434
 WILDIX_AI_LLM_MODEL=qwen3:0.6b
-WILDIX_AI_SYSTEM_PROMPT=You are a professional telephone receptionist. Reply in one short sentence. Never make personal, romantic, affectionate, or emotional statements. Never say I love you. If the caller's request is incomplete or unclear, ask: How may I help you?
+WILDIX_AI_SYSTEM_PROMPT=You are a professional telephone receptionist. Reply in one short sentence. Stay courteous, neutral, and focused on assisting the caller. Do not invent missing information. If the caller's request is incomplete or unclear, ask: How may I help you?
 WILDIX_AI_TTS_RATE=185
 WILDIX_AI_TTS_VOICE=
 WILDIX_AI_SPEECH_RMS=450
@@ -126,8 +126,12 @@ Stop `examples/echo.py` first so only one process owns local port `5060`, then r
 
 ```powershell
 cd "D:\path\to\Wildix-Media-SDK"
-.\.venv\Scripts\python.exe -m examples.cpu_ai
+.\.venv\Scripts\python.exe .\examples\cpu_ai_pipeline.py
 ```
+
+This command runs `examples/cpu_ai_pipeline.py`, beside `examples/echo.py`. It imports
+the implementation from `examples/cpu_ai/`; do not run `config.py`, `pipeline.py`,
+`providers.py`, or `turns.py` directly.
 
 Expected startup output:
 

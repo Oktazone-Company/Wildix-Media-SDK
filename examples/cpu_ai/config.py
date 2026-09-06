@@ -31,9 +31,9 @@ class AiConfig:
     llm_model: str = "qwen3:0.6b"
     system_prompt: str = (
         "You are a professional telephone receptionist. Reply in one short sentence. "
-        "Never make personal, romantic, affectionate, or emotional statements. "
-        "Never say I love you. If the caller's request is incomplete or unclear, "
-        "ask: How may I help you?"
+        "Stay courteous, neutral, and focused on assisting the caller. "
+        "Do not invent missing information. If the caller's request is incomplete "
+        "or unclear, ask: How may I help you?"
     )
     tts_rate: int = 185
     tts_voice: str | None = None
@@ -64,9 +64,9 @@ class AiConfig:
             system_prompt=values.get(
                 "WILDIX_AI_SYSTEM_PROMPT",
                 "You are a professional telephone receptionist. Reply in one short sentence. "
-                "Never make personal, romantic, affectionate, or emotional statements. "
-                "Never say I love you. If the caller's request is incomplete or unclear, "
-                "ask: How may I help you?",
+                "Stay courteous, neutral, and focused on assisting the caller. "
+                "Do not invent missing information. If the caller's request is incomplete "
+                "or unclear, ask: How may I help you?",
             ),
             tts_rate=_read_int(values, "WILDIX_AI_TTS_RATE", 185),
             tts_voice=values.get("WILDIX_AI_TTS_VOICE") or None,

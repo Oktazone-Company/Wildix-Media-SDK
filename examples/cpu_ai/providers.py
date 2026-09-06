@@ -12,7 +12,7 @@ import wave
 from pathlib import Path
 from typing import Any
 
-from examples.cpu_ai.config import AiConfig
+from .config import AiConfig
 
 
 class FasterWhisperAsr:

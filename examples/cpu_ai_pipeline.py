@@ -5,10 +5,10 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 
+from cpu_ai.config import AiConfig
+from cpu_ai.pipeline import CpuAiPipeline
 from dotenv import load_dotenv
 
-from examples.cpu_ai.config import AiConfig
-from examples.cpu_ai.pipeline import CpuAiPipeline
 from wildix_media import MediaServer, ServerConfig
 
 
@@ -23,7 +23,7 @@ def main() -> None:
         OSError: If Ollama, SIP, or RTP resources are unavailable.
         ValueError: If environment configuration is invalid.
     """
-    repository_root = Path(__file__).resolve().parents[2]
+    repository_root = Path(__file__).resolve().parents[1]
     load_dotenv(repository_root / ".env")
     logging.basicConfig(
         level=logging.INFO,

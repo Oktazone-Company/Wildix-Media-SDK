@@ -15,7 +15,7 @@ business logic.
 Use this example before integrating ASR or TTS. A successful echo separates telephony
 transport correctness from higher-layer latency and provider behavior.
 
-## `cpu_ai`
+## `cpu_ai_pipeline.py`
 
 The smallest fully local AI path uses Faster Whisper `tiny.en` on CPU/int8, Ollama
 `qwen3:0.6b`, and the operating system's installed speech voice:
@@ -24,11 +24,12 @@ The smallest fully local AI path uses Faster Whisper `tiny.en` on CPU/int8, Olla
 ollama pull qwen3:0.6b
 ollama serve
 .\.venv\Scripts\python.exe -m pip install -e ".[ai]"
-.\.venv\Scripts\python.exe -m examples.cpu_ai
+.\.venv\Scripts\python.exe .\examples\cpu_ai_pipeline.py
 ```
 
 The first run downloads the Whisper model. Configure provider and turn-detection values
-with the `WILDIX_AI_*` entries in `.env.example`. This example is intentionally
+with the `WILDIX_AI_*` entries in `.env.example`. The executable imports its AI
+implementation from `examples/cpu_ai/`. This example is intentionally
 turn-based: it detects trailing silence, transcribes one utterance, generates one short
 reply, synthesizes it locally, and sends the PCM response over the active call.
 

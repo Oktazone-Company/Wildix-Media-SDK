@@ -120,7 +120,7 @@ Install the optional CPU pipeline and pull its compact Ollama model:
 ```powershell
 ollama pull qwen3:0.6b
 .\.venv\Scripts\python.exe -m pip install -e ".[ai]"
-.\.venv\Scripts\python.exe -m examples.cpu_ai
+.\.venv\Scripts\python.exe .\examples\cpu_ai_pipeline.py
 ```
 
 It runs `tiny.en` Faster Whisper ASR in CPU/int8 mode, sends short conversational turns

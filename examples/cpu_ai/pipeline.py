@@ -6,10 +6,11 @@ import asyncio
 import contextlib
 import logging
 
-from examples.cpu_ai.config import AiConfig
-from examples.cpu_ai.providers import FasterWhisperAsr, OllamaChat, SystemTts
-from examples.cpu_ai.turns import TurnDetector
 from wildix_media import MediaCall
+
+from .config import AiConfig
+from .providers import FasterWhisperAsr, OllamaChat, SystemTts
+from .turns import TurnDetector
 
 logger = logging.getLogger(__name__)
 _END = object()
