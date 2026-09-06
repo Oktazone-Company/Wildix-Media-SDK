@@ -5,6 +5,8 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 
+from dotenv import load_dotenv
+
 from wildix_media import (
     MediaCall,
     MediaServer,
@@ -13,6 +15,7 @@ from wildix_media import (
     call_recording_path,
 )
 
+load_dotenv(Path(__file__).resolve().parents[1] / ".env")
 server = MediaServer(ServerConfig.from_env())
 recording_directory = Path("recordings")
 

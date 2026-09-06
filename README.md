@@ -95,7 +95,8 @@ This topology was validated with a combined TCP/UDP Localtonet tunnel. RTP audio
 only SIP signaling uses TCP. Full UDP operation is supported when SIP and RTP have
 separate UDP tunnel endpoints. See [Wildix Setup](docs/wildix-setup.md).
 
-Run the diagnostic application after exporting the settings from `.env.example`:
+Copy `.env.example` to `.env` and update the tunnel endpoint. The diagnostic application
+automatically loads `.env` from the repository root:
 
 ```powershell
 .\.venv\Scripts\python.exe .\examples\echo.py
@@ -111,6 +112,20 @@ For each accepted call it:
 
 Hearing the echo and finding a non-empty WAV proves signaling, both RTP directions,
 codec decoding, and codec encoding.
+
+### Lightweight Local AI Example
+
+Install the optional CPU pipeline and pull its compact Ollama model:
+
+```powershell
+ollama pull qwen3:0.6b
+.\.venv\Scripts\python.exe -m pip install -e ".[ai]"
+.\.venv\Scripts\python.exe -m examples.cpu_ai
+```
+
+It runs `tiny.en` Faster Whisper ASR in CPU/int8 mode, sends short conversational turns
+to local Ollama, and converts the operating system's offline TTS voice back to the
+negotiated telephone PCM format. See [Examples](examples/README.md) for configuration.
 
 ## Audio Contract
 

@@ -7,6 +7,8 @@ import logging
 from functools import partial
 from pathlib import Path
 
+from dotenv import load_dotenv
+
 from wildix_media.call import MediaCall
 from wildix_media.config import ServerConfig
 from wildix_media.recording import WaveRecorder, call_recording_path
@@ -76,6 +78,7 @@ def main() -> None:
         ConfigurationError: If an environment setting is invalid.
         OSError: If a listener cannot bind or a public hostname cannot resolve.
     """
+    load_dotenv(Path.cwd() / ".env")
     args = build_parser().parse_args()
     logging.basicConfig(
         level=logging.DEBUG if args.debug else logging.INFO,
