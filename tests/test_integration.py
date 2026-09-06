@@ -20,15 +20,15 @@ def _free_dual_protocol_port() -> int:
         Best-effort free port suitable for the single-port tunnel topology.
     """
     for _attempt in range(20):
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as tcp_socket:
-            tcp_socket.bind(("127.0.0.1", 0))
-            port = int(tcp_socket.getsockname()[1])
-        try:
-            with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as udp_socket:
-                udp_socket.bind(("127.0.0.1", port))
-            return port
-        except OSError:
-            continue
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as udp_socket:
+            udp_socket.bind(("127.0.0.1", 0))
+            port = int(udp_socket.getsockname()[1])
+            try:
+                with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as tcp_socket:
+                    tcp_socket.bind(("127.0.0.1", port))
+                return port
+            except OSError:
+                continue
     raise RuntimeError("Could not find a free TCP/UDP test port")
 
 
@@ -36,11 +36,19 @@ def _free_udp_port() -> int:
     """Find one best-effort free local UDP port.
 
     Returns:
-        Port released immediately for use by the loopback caller.
+        Non-ephemeral port released immediately for use by the loopback caller.
+
+    Raises:
+        RuntimeError: If the small test range has no available port.
     """
-    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as udp_socket:
-        udp_socket.bind(("127.0.0.1", 0))
-        return int(udp_socket.getsockname()[1])
+    for port in range(20_000, 20_100):
+        try:
+            with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as udp_socket:
+                udp_socket.bind(("127.0.0.1", port))
+            return port
+        except OSError:
+            continue
+    raise RuntimeError("Could not find a free UDP test port")
 
 
 def _tone_frame() -> bytes:

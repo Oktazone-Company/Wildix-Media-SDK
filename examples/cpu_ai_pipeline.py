@@ -6,7 +6,7 @@ import logging
 from pathlib import Path
 
 from cpu_ai.config import AiConfig
-from cpu_ai.pipeline import CpuAiPipeline
+from cpu_ai.pipeline import StreamingVoicePipeline
 from dotenv import load_dotenv
 
 from wildix_media import MediaServer, ServerConfig
@@ -29,7 +29,7 @@ def main() -> None:
         level=logging.INFO,
         format="%(asctime)s %(levelname)s %(name)s %(message)s",
     )
-    pipeline = CpuAiPipeline(AiConfig.from_env())
+    pipeline = StreamingVoicePipeline(AiConfig.from_env())
     MediaServer(ServerConfig.from_env(), pipeline.handle_call).run()
 
 

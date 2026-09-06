@@ -1,5 +1,5 @@
-"""Lightweight local ASR, Ollama, and system-TTS call example."""
+"""Lightweight streaming ASR, Ollama, and system-TTS call example."""
 
-from .pipeline import CpuAiPipeline
+from .pipeline import CpuAiPipeline, StreamingVoicePipeline
 
-__all__ = ["CpuAiPipeline"]
+__all__ = ["CpuAiPipeline", "StreamingVoicePipeline"]

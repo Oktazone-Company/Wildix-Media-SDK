@@ -123,9 +123,10 @@ ollama pull qwen3:0.6b
 .\.venv\Scripts\python.exe .\examples\cpu_ai_pipeline.py
 ```
 
-It runs `tiny.en` Faster Whisper ASR in CPU/int8 mode, sends short conversational turns
-to local Ollama, and converts the operating system's offline TTS voice back to the
-negotiated telephone PCM format. See [Examples](examples/README.md) for configuration.
+It runs `tiny.en` Faster Whisper ASR in CPU/int8 mode, streams short conversational
+responses from local Ollama, and incrementally converts them into telephone PCM phrases
+for RTP playback. See [Examples](examples/README.md) for configuration and provider
+replacement points.
 
 ## Audio Contract
 

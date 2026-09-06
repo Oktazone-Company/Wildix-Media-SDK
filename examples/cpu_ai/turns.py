@@ -75,3 +75,73 @@ class TurnDetector:
         self._speech_ms = 0.0
         self._silence_ms = 0.0
         return utterance
+
+
+class TextChunker:
+    """Split streaming model text into short, speakable TTS phrases."""
+
+    def __init__(self, target_chars: int) -> None:
+        """Create an empty phrase buffer.
+
+        Args:
+            target_chars: Preferred maximum phrase length before a word-boundary split.
+
+        Raises:
+            ValueError: If ``target_chars`` is not positive.
+        """
+        if target_chars <= 0:
+            raise ValueError("target_chars must be positive")
+        self._target_chars = target_chars
+        self._buffer = ""
+
+    def feed(self, fragment: str) -> list[str]:
+        """Add one model fragment and return all complete phrases.
+
+        Args:
+            fragment: Incremental text emitted by the language model.
+
+        Returns:
+            Complete phrases ready for immediate speech synthesis.
+        """
+        self._buffer += fragment
+        return self._extract_ready_phrases()
+
+    def flush(self) -> str | None:
+        """Return remaining text after the model stream ends.
+
+        Returns:
+            Final stripped phrase, or ``None`` when the buffer is empty.
+        """
+        phrase = self._buffer.strip()
+        self._buffer = ""
+        return phrase or None
+
+    def _extract_ready_phrases(self) -> list[str]:
+        """Remove all currently speakable phrases from the internal buffer.
+
+        Returns:
+            Ordered phrases ending at punctuation or a configured size boundary.
+        """
+        phrases: list[str] = []
+        while boundary := self._next_boundary():
+            phrase = self._buffer[:boundary].strip()
+            self._buffer = self._buffer[boundary:].lstrip()
+            if phrase:
+                phrases.append(phrase)
+        return phrases
+
+    def _next_boundary(self) -> int | None:
+        """Locate the next natural or size-based phrase boundary.
+
+        Returns:
+            Exclusive character offset, or ``None`` when more text is needed.
+        """
+        for index, character in enumerate(self._buffer):
+            if character in ".!?\n":
+                return index + 1
+            if character in ",;:" and index + 1 >= self._target_chars // 2:
+                return index + 1
+        if len(self._buffer) < self._target_chars:
+            return None
+        split_at = self._buffer.rfind(" ", 0, self._target_chars + 1)
+        return split_at if split_at > 0 else self._target_chars

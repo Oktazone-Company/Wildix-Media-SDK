@@ -96,6 +96,7 @@ WILDIX_AI_LLM_MODEL=qwen3:0.6b
 WILDIX_AI_SYSTEM_PROMPT=You are a professional telephone receptionist. Reply in one short sentence. Stay courteous, neutral, and focused on assisting the caller. Do not invent missing information. If the caller's request is incomplete or unclear, ask: How may I help you?
 WILDIX_AI_TTS_RATE=185
 WILDIX_AI_TTS_VOICE=
+WILDIX_AI_TTS_CHUNK_CHARS=48
 WILDIX_AI_SPEECH_RMS=450
 WILDIX_AI_END_SILENCE_MS=700
 WILDIX_AI_MIN_SPEECH_MS=300
@@ -146,6 +147,51 @@ one second. A successful turn produces logs similar to:
 AI call ... caller: What time do you close?
 AI call ... assistant: We close at five o'clock.
 ```
+
+## Streaming Pipeline
+
+`StreamingVoicePipeline` exposes each stage as a small public method:
+
+1. `stream_asr(call)` continuously consumes incoming RTP frames and yields caller text.
+2. `stream_llm(conversation, transcript)` yields Ollama response fragments immediately.
+3. `stream_tts(text_stream, sample_rate)` turns those fragments into short PCM frames.
+4. `stream_rtp(call, audio_stream)` paces the PCM frames over the live RTP session.
+5. `run_turn(...)` composes LLM, TTS, and RTP; `run_pipeline(call)` manages the call.
+
+The default Faster Whisper model finalizes one bounded utterance after trailing silence.
+Ollama streams response fragments natively. Windows system TTS is not a native streaming
+engine, so its adapter synthesizes short phrases as fragments arrive and immediately
+streams their 20 ms PCM frames. Set `WILDIX_AI_TTS_CHUNK_CHARS` lower for faster first
+audio or higher for smoother prosody.
+
+### Replace a Stage
+
+Inject providers when they match the contracts in `contracts.py`:
+
+```python
+pipeline = StreamingVoicePipeline(
+    config,
+    asr=my_recognizer,
+    conversation_factory=create_my_conversation,
+    tts=my_synthesizer,
+)
+```
+
+For a native online ASR or a custom RAG workflow, subclass the pipeline and override
+only the relevant public stage:
+
+```python
+class ClientVoicePipeline(StreamingVoicePipeline):
+    async def stream_asr(self, call):
+        async for transcript in my_online_asr(call.audio_frames()):
+            yield transcript
+
+    async def stream_llm(self, conversation, transcript):
+        async for fragment in my_rag_agent.stream(transcript):
+            yield fragment
+```
+
+The SIP/RTP server and the remaining stages do not need to change.
 
 ## Troubleshooting
 

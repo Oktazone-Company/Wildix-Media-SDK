@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from examples.cpu_ai.config import AiConfig
-from examples.cpu_ai.turns import TurnDetector
+from examples.cpu_ai.turns import TextChunker, TurnDetector
 from wildix_media import AudioFrame
 
 
@@ -40,3 +40,22 @@ def test_turn_detector_discards_short_noise() -> None:
     ]
 
     assert all(result is None for result in results)
+
+
+def test_text_chunker_emits_complete_sentence_immediately() -> None:
+    """Verify punctuation releases a phrase before the model stream ends."""
+    chunker = TextChunker(target_chars=48)
+
+    assert chunker.feed("Good morning") == []
+    assert chunker.feed(". How may") == ["Good morning."]
+    assert chunker.flush() == "How may"
+
+
+def test_text_chunker_limits_unpunctuated_text_at_word_boundary() -> None:
+    """Verify long text can reach TTS without waiting for final punctuation."""
+    chunker = TextChunker(target_chars=12)
+
+    phrases = chunker.feed("one two three four")
+
+    assert phrases == ["one two"]
+    assert chunker.flush() == "three four"

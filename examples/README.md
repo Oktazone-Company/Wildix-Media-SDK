@@ -29,9 +29,10 @@ ollama serve
 
 The first run downloads the Whisper model. Configure provider and turn-detection values
 with the `WILDIX_AI_*` entries in `.env.example`. The executable imports its AI
-implementation from `examples/cpu_ai/`. This example is intentionally
-turn-based: it detects trailing silence, transcribes one utterance, generates one short
-reply, synthesizes it locally, and sends the PCM response over the active call.
+implementation from `examples/cpu_ai/`. Its named streaming stages consume RTP,
+transcribe finalized speech turns, stream Ollama text, synthesize bounded phrases, and
+send PCM frames as soon as each phrase is ready. See `cpu_ai/README.md` for extension
+examples and the native-streaming limitations of the bundled CPU providers.
 
 ## Application Integration
 

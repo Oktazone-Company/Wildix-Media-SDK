@@ -19,6 +19,7 @@ class AiConfig:
         system_prompt: Instruction constraining telephone responses.
         tts_rate: System speech rate in words per minute.
         tts_voice: Optional substring used to select an installed system voice.
+        tts_chunk_chars: Preferred maximum text length synthesized per phrase.
         speech_rms: Minimum frame RMS treated as speech.
         end_silence_ms: Silence required to complete an utterance.
         min_speech_ms: Minimum speech duration accepted for transcription.
@@ -37,6 +38,7 @@ class AiConfig:
     )
     tts_rate: int = 185
     tts_voice: str | None = None
+    tts_chunk_chars: int = 48
     speech_rms: int = 450
     end_silence_ms: int = 700
     min_speech_ms: int = 300
@@ -70,6 +72,7 @@ class AiConfig:
             ),
             tts_rate=_read_int(values, "WILDIX_AI_TTS_RATE", 185),
             tts_voice=values.get("WILDIX_AI_TTS_VOICE") or None,
+            tts_chunk_chars=_read_int(values, "WILDIX_AI_TTS_CHUNK_CHARS", 48),
             speech_rms=_read_int(values, "WILDIX_AI_SPEECH_RMS", 450),
             end_silence_ms=_read_int(values, "WILDIX_AI_END_SILENCE_MS", 700),
             min_speech_ms=_read_int(values, "WILDIX_AI_MIN_SPEECH_MS", 300),
@@ -89,6 +92,7 @@ class AiConfig:
         """
         positive = {
             "tts_rate": self.tts_rate,
+            "tts_chunk_chars": self.tts_chunk_chars,
             "speech_rms": self.speech_rms,
             "end_silence_ms": self.end_silence_ms,
             "min_speech_ms": self.min_speech_ms,
