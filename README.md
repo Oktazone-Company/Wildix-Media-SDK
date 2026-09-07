@@ -128,6 +128,75 @@ responses from local Ollama, and incrementally converts them into telephone PCM 
 for RTP playback. See [Examples](examples/README.md) for configuration and provider
 replacement points.
 
+### Replace ASR, LLM, or TTS
+
+The pipeline accepts independent provider adapters. In this template, `your_asr`,
+`your_llm`, and `your_tts` represent objects supplied by the provider SDK selected by
+the application:
+
+```python
+"""Minimal replaceable ASR -> LLM -> TTS voice pipeline."""
+
+from __future__ import annotations
+
+from collections.abc import AsyncIterator
+
+from dotenv import load_dotenv
+
+from examples.cpu_ai.config import AiConfig
+from examples.cpu_ai.pipeline import StreamingVoicePipeline
+from wildix_media import MediaServer, ServerConfig
+
+
+class ASR:
+    """ASR layer: Replace this method with a speech-to-text provider."""
+
+    async def transcribe(self, pcm: bytes, sample_rate: int) -> str:
+        """Receive caller PCM audio and return recognized text."""
+        return await your_asr.transcribe(pcm, sample_rate)
+
+
+class LLM:
+    """LLM layer: Replace this method with an LLM, RAG, or agent."""
+
+    async def stream_reply(self, user_text: str) -> AsyncIterator[str]:
+        """Receive caller text and stream generated response text."""
+        async for text in your_llm.stream(user_text):
+            yield text
+
+
+class TTS:
+    """TTS layer: Replace this method with a streaming speech provider."""
+
+    async def stream(
+        self,
+        text_stream: AsyncIterator[str],
+        sample_rate: int,
+    ) -> AsyncIterator[bytes]:
+        """Receive streaming text and yield playable PCM audio frames."""
+        async for pcm in your_tts.stream(text_stream, sample_rate):
+            yield pcm
+
+
+load_dotenv()
+
+pipeline = StreamingVoicePipeline(
+    AiConfig.from_env(),
+    asr=ASR(),
+    conversation_factory=LLM,
+    tts=TTS(),
+)
+
+MediaServer(
+    ServerConfig.from_env(),
+    pipeline.handle_call,
+).run()
+```
+
+Remove any adapter argument to retain that default layer. Custom TTS adapters must
+yield signed 16-bit, little-endian, mono PCM at the supplied `sample_rate`. Native
+streaming ASR integrations can override `StreamingVoicePipeline.stream_asr()` directly.
+
 ## Audio Contract
 
 | Property | Value |
