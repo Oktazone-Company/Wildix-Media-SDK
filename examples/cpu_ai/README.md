@@ -78,6 +78,7 @@ WILDIX_MEDIA_SIP_TRANSPORT=tcp
 WILDIX_MEDIA_RTP_HOST=127.0.0.1
 WILDIX_MEDIA_RTP_PORT_START=5060
 WILDIX_MEDIA_RTP_PORT_END=5060
+WILDIX_MEDIA_SHARED_RTP_MAX_CALLS=8
 
 WILDIX_MEDIA_ADVERTISED_SIP_HOST=YOUR_RESOLVED_PUBLIC_IPV4
 WILDIX_MEDIA_ADVERTISED_SIP_PORT=YOUR_PUBLIC_PORT
@@ -118,8 +119,9 @@ For the tested one-port topology:
 - Wildix transport: `TCP`
 - Wildix codecs: `alaw`, followed by `ulaw`
 
-The one-port configuration supports one active media call. Use a public UDP port range
-and a matching SDK RTP range for concurrent production calls.
+Multi-call tunnel mode supports up to the configured number of concurrent development calls
+through one tunnel port. Use a public UDP port range and a matching SDK RTP range for
+production deployments.
 
 ## 5. Run the AI Example
 

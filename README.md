@@ -95,6 +95,17 @@ This topology was validated with a combined TCP/UDP Localtonet tunnel. RTP audio
 only SIP signaling uses TCP. Full UDP operation is supported when SIP and RTP have
 separate UDP tunnel endpoints. See [Wildix Setup](docs/wildix-setup.md).
 
+For concurrent development calls through the same single-port tunnel, enable the
+flow-aware RTP multiplexer:
+
+```env
+WILDIX_MEDIA_SHARED_RTP_MAX_CALLS=8
+```
+
+The multiplexer isolates tunnel UDP flows by source endpoint and RTP SSRC while all
+SDP answers advertise the same public media port. Keep this setting at `0` when using
+a normal public RTP port range, which remains the recommended production topology.
+
 Copy `.env.example` to `.env` and update the tunnel endpoint. The diagnostic application
 automatically loads `.env` from the repository root:
 
@@ -127,6 +138,14 @@ It runs `tiny.en` Faster Whisper ASR in CPU/int8 mode, streams short conversatio
 responses from local Ollama, and incrementally converts them into telephone PCM phrases
 for RTP playback. See [Examples](examples/README.md) for configuration and provider
 replacement points.
+
+For as many as eight development calls through one combined Localtonet port, use the
+dedicated multi-call launcher and configuration template:
+
+```powershell
+Copy-Item .\.env.example .\.env
+.\.venv\Scripts\python.exe .\examples\multi_call_ai_pipeline.py
+```
 
 ### Replace ASR, LLM, or TTS
 

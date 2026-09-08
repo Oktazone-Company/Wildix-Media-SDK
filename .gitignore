@@ -6,7 +6,7 @@
 .mcp.json
 .mypy_cache/
 .pytest_cache/
-.pytest-tmp*/
+.pytest-*/
 .ruff_cache/
 .venv/
 .vscode/

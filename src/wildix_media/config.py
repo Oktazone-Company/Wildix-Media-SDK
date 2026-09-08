@@ -92,6 +92,7 @@ class ServerConfig:
     ptime_ms: int = 20
     audio_queue_frames: int = 250
     symmetric_rtp: bool = True
+    shared_rtp_max_calls: int = 0
     user_agent: str = "OktaZone-Wildix-Media-SDK/0.1"
 
     def __post_init__(self) -> None:
@@ -113,6 +114,10 @@ class ServerConfig:
             raise ConfigurationError("ptime_ms must be one of 10, 20, 30, 40, or 60")
         if self.audio_queue_frames < 1:
             raise ConfigurationError("audio_queue_frames must be at least 1")
+        if self.shared_rtp_max_calls < 0:
+            raise ConfigurationError("shared_rtp_max_calls cannot be negative")
+        if self.shared_rtp_max_calls and self.rtp_port_start != self.rtp_port_end:
+            raise ConfigurationError("Shared RTP mode requires one local RTP port")
         self._validate_advertised_ports()
 
     @property
@@ -228,6 +233,9 @@ class ServerConfig:
             ptime_ms=_parse_int(get("PTIME_MS", "20"), "PTIME_MS"),
             audio_queue_frames=_parse_int(get("AUDIO_QUEUE_FRAMES", "250"), "AUDIO_QUEUE_FRAMES"),
             symmetric_rtp=_parse_bool(get("SYMMETRIC_RTP", "true"), "SYMMETRIC_RTP"),
+            shared_rtp_max_calls=_parse_int(
+                get("SHARED_RTP_MAX_CALLS", "0"), "SHARED_RTP_MAX_CALLS"
+            ),
             user_agent=get("USER_AGENT", "OktaZone-Wildix-Media-SDK/0.1"),
         )
 
