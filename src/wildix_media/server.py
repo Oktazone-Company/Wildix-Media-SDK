@@ -15,12 +15,16 @@ from aiosipua import CallSession, IncomingCall, SipUAS, TcpSipTransport, UdpSipT
 from wildix_media.call import MediaCall
 from wildix_media.config import ServerConfig, SignalingTransport
 from wildix_media.errors import MediaCapacityError
-from wildix_media.ports import RtpPortPool
+from wildix_media.ports import RtpPortPool, SharedRtpPortPool
+from wildix_media.shared_rtp import SharedRtpCallSession, SharedRtpMultiplexer
 
 logger = logging.getLogger(__name__)
 
 CallHandler: TypeAlias = Callable[[MediaCall], Awaitable[None]]
 """Coroutine that owns application processing for one accepted call."""
+
+RtpCallSession: TypeAlias = CallSession | SharedRtpCallSession
+"""Standard or multiplexed media session used by an accepted call."""
 
 
 @dataclass(slots=True)
@@ -48,13 +52,41 @@ class MediaServer:
         """
         self.config = config or ServerConfig()
         self._handler = handler
-        self._ports = RtpPortPool(self.config.rtp_port_start, self.config.rtp_port_end)
+        self._shared_rtp = self._create_shared_rtp()
+        self._ports = self._create_port_pool()
         self._uas: SipUAS | None = None
         self._active: dict[str, _ActiveCall] = {}
         self._setup_tasks: set[asyncio.Task[None]] = set()
         self._cleanup_tasks: set[asyncio.Task[None]] = set()
         self._stop_event = asyncio.Event()
         self._advertised_rtp_ip: str | None = None
+
+    def _create_shared_rtp(self) -> SharedRtpMultiplexer | None:
+        """Create the optional single-port RTP multiplexer.
+
+        Returns:
+            Configured multiplexer when shared mode is enabled, otherwise ``None``.
+        """
+        if not self.config.shared_rtp_max_calls:
+            return None
+        return SharedRtpMultiplexer(
+            self.config.rtp_host,
+            self.config.rtp_port_start,
+            self.config.shared_rtp_max_calls,
+        )
+
+    def _create_port_pool(self) -> RtpPortPool | SharedRtpPortPool:
+        """Create capacity tracking for the selected media topology.
+
+        Returns:
+            Exclusive RTP pair pool or multi-call slot pool.
+        """
+        if self.config.shared_rtp_max_calls:
+            return SharedRtpPortPool(
+                self.config.rtp_port_start,
+                self.config.shared_rtp_max_calls,
+            )
+        return RtpPortPool(self.config.rtp_port_start, self.config.rtp_port_end)
 
     @property
     def is_running(self) -> bool:
@@ -113,6 +145,8 @@ class MediaServer:
         if self._handler is None:
             raise RuntimeError("Register a call handler before starting the server")
         self._advertised_rtp_ip = await _resolve_rtp_ip(self.config)
+        if self._shared_rtp is not None:
+            await self._shared_rtp.start()
         transport = _create_transport(self.config)
         uas = SipUAS(
             transport,
@@ -121,7 +155,12 @@ class MediaServer:
         )
         uas.on_invite = self._schedule_invite
         uas.on_bye = self._handle_bye
-        await uas.start()
+        try:
+            await uas.start()
+        except Exception:
+            if self._shared_rtp is not None:
+                await self._shared_rtp.stop()
+            raise
         self._uas = uas
         self._stop_event.clear()
         logger.info(
@@ -132,6 +171,13 @@ class MediaServer:
             self.config.rtp_port_start,
             self.config.rtp_port_end,
         )
+        if self._shared_rtp is not None:
+            logger.info(
+                "Multi-call RTP multiplexer enabled on %s:%d/udp for up to %d calls",
+                self.config.rtp_host,
+                self.config.rtp_port_start,
+                self.config.shared_rtp_max_calls,
+            )
 
     async def stop(self) -> None:
         """End active calls and close every signaling and media socket.
@@ -150,6 +196,8 @@ class MediaServer:
         if self._uas is not None:
             await self._uas.stop()
             self._uas = None
+        if self._shared_rtp is not None:
+            await self._shared_rtp.stop()
 
     async def serve_forever(self) -> None:
         """Start the server and wait until ``stop`` or task cancellation.
@@ -208,9 +256,10 @@ class MediaServer:
         try:
             rtp_port = await self._ports.acquire()
         except MediaCapacityError:
+            logger.warning("Call %s rejected: media capacity exhausted", sip_call.call_id)
             sip_call.reject(486, "No media capacity")
             return
-        session: CallSession | None = None
+        session: RtpCallSession | None = None
         try:
             session = self._new_rtp_session(sip_call, rtp_port)
             media_call = self._new_media_call(sip_call, session)
@@ -237,7 +286,7 @@ class MediaServer:
             await self._ports.release(rtp_port)
             sip_call.reject(488, "Media negotiation failed")
 
-    def _new_rtp_session(self, sip_call: IncomingCall, rtp_port: int) -> CallSession:
+    def _new_rtp_session(self, sip_call: IncomingCall, rtp_port: int) -> RtpCallSession:
         """Create an unstarted RTP session and apply public port mapping.
 
         Args:
@@ -252,6 +301,8 @@ class MediaServer:
         """
         if sip_call.sdp_offer is None:
             raise ValueError("Cannot create RTP without an SDP offer")
+        if self._shared_rtp is not None:
+            return self._new_shared_rtp_session(sip_call, rtp_port)
         session = CallSession(
             local_ip=self.config.rtp_host,
             rtp_port=rtp_port,
@@ -267,7 +318,38 @@ class MediaServer:
         audio.port = self.config.advertised_rtp_port(rtp_port)
         return session
 
-    def _new_media_call(self, sip_call: IncomingCall, session: CallSession) -> MediaCall:
+    def _new_shared_rtp_session(
+        self,
+        sip_call: IncomingCall,
+        rtp_port: int,
+    ) -> SharedRtpCallSession:
+        """Create a virtual call session on the multi-call UDP listener.
+
+        Args:
+            sip_call: Incoming call containing a valid SDP offer.
+            rtp_port: Shared local RTP port leased for capacity tracking.
+
+        Returns:
+            Unstarted multi-call session ready for SIP acceptance.
+
+        Raises:
+            ValueError: If required SDP or advertised addressing is unavailable.
+        """
+        if sip_call.sdp_offer is None or self._shared_rtp is None:
+            raise ValueError("Multi-call RTP requires an SDP offer and active multiplexer")
+        if self._advertised_rtp_ip is None:
+            raise ValueError("Multi-call RTP advertised address has not been resolved")
+        return SharedRtpCallSession(
+            call_id=sip_call.call_id,
+            offer=sip_call.sdp_offer,
+            multiplexer=self._shared_rtp,
+            advertised_ip=self._advertised_rtp_ip,
+            advertised_port=self.config.advertised_rtp_port(rtp_port),
+            supported_codecs=self.config.payload_types,
+            ptime=self.config.ptime_ms,
+        )
+
+    def _new_media_call(self, sip_call: IncomingCall, session: RtpCallSession) -> MediaCall:
         """Wrap third-party signaling and RTP sessions in the public call API.
 
         Args:

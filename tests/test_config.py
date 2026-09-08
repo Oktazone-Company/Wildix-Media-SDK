@@ -55,3 +55,26 @@ def test_public_rtp_range_must_fit_valid_ports() -> None:
             rtp_port_end=10010,
             advertised_rtp_port_start=65530,
         )
+
+
+def test_environment_enables_shared_rtp_capacity() -> None:
+    """A single tunnel port may opt into bounded shared-flow multiplexing."""
+    config = ServerConfig.from_env(
+        {
+            "WILDIX_MEDIA_RTP_PORT_START": "5060",
+            "WILDIX_MEDIA_RTP_PORT_END": "5060",
+            "WILDIX_MEDIA_SHARED_RTP_MAX_CALLS": "8",
+        }
+    )
+
+    assert config.shared_rtp_max_calls == 8
+
+
+def test_shared_rtp_rejects_a_local_port_range() -> None:
+    """Shared mode should expose exactly one tunnel-facing local UDP port."""
+    with pytest.raises(ConfigurationError, match="requires one local RTP port"):
+        ServerConfig(
+            rtp_port_start=5060,
+            rtp_port_end=5062,
+            shared_rtp_max_calls=8,
+        )

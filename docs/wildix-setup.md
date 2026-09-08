@@ -11,6 +11,17 @@ Create one combined `TCP_UDP` tunnel:
 public-host.example.com:PUBLIC_PORT -> 127.0.0.1:5060
 ```
 
+To test as many as eight concurrent calls through this same endpoint, enable the
+flow-aware multi-call listener:
+
+```text
+WILDIX_MEDIA_SHARED_RTP_MAX_CALLS=8
+```
+
+This opt-in mode binds one UDP socket and associates each Localtonet UDP flow with an
+independent call session. Leave it disabled for a direct public deployment with an RTP
+port range.
+
 Use TCP for SIP signaling and UDP for RTP audio. TCP and UDP can share numeric port
 `5060` because the operating system treats them as separate transports.
 
@@ -23,6 +34,7 @@ $env:WILDIX_MEDIA_SIP_TRANSPORT = "tcp"
 $env:WILDIX_MEDIA_RTP_HOST = "127.0.0.1"
 $env:WILDIX_MEDIA_RTP_PORT_START = "5060"
 $env:WILDIX_MEDIA_RTP_PORT_END = "5060"
+$env:WILDIX_MEDIA_SHARED_RTP_MAX_CALLS = "8"
 $env:WILDIX_MEDIA_ADVERTISED_SIP_HOST = "public-host.example.com"
 $env:WILDIX_MEDIA_ADVERTISED_SIP_PORT = "PUBLIC_PORT"
 $env:WILDIX_MEDIA_ADVERTISED_RTP_HOST = "public-host.example.com"
